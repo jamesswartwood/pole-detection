@@ -25,4 +25,10 @@ View written documentation here:
 
 ---
 
+## Acknowledgements
+
+The [uwing](https://github.com/pjreddie/uwimg/) library was developed over the course of [CSE 455](https://courses.cs.washington.edu/courses/cse455/22sp/). Everything in `src/project` was developed for this project specifically, and the key functions and additional data structures were inserted into the uwing library for compiling purposes.
+
+---
+
 If you have any questions, feel free to email **jamesmw@uw.edu**
