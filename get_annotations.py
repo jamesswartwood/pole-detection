@@ -7,7 +7,7 @@ save_path = "output/samples/images/"
 save_prefix = ""
 
 filenames = glob.glob(data_path + "*.jpg")
-filenames = glob.glob(data_path + "*.JPG")
+filenames += glob.glob(data_path + "*.JPG")
 
 print("Number of files:", len(filenames))
 
