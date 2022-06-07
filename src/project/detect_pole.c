@@ -6,11 +6,6 @@
 #include "image.h"
 #include "matrix.h"
 
-// Toggles for debugging and vizualization
-#define PRINT_INFO 0
-#define VIZUALIZE 1
-#define DEBUG 0
-
 // Determines size of cross marker used to highlight points on image
 #define MARKER_THICKNESS 5
 #define MARKER_DIMENSIONS 40
@@ -26,7 +21,9 @@
 // Arguments:
 //  `hsv` = HSV image
 //  `x` = x-coordinate of pixel
-//  `y` = y-coordinate of pixel TODO: Update
+//  `y` = y-coordinate of pixel
+//  `pink` = degree of pink on color wheel
+//  `orange` = degree of orange on color wheel
 // Returns:
 //  1 = pixel is red
 //  0 = pixel is not red
@@ -64,7 +61,6 @@ float pixel_contrast(image im, point p1, point p2, float min_contrast) {
     float dr = fabs(get_pixel(im, p1.x, p1.y, 0) - get_pixel(im, p2.x, p2.y, 0));
     float dg = fabs(get_pixel(im, p1.x, p1.y, 1) - get_pixel(im, p2.x, p2.y, 1));
     float db = fabs(get_pixel(im, p1.x, p1.y, 2) - get_pixel(im, p2.x, p2.y, 2));
-    if (DEBUG) printf("Measured contrast: %f\n", dr + dg + db); // TODO: Remove
     return min_contrast < dr + dg + db;
 }
 
@@ -383,12 +379,13 @@ int get_pole_info(image im, image hsv, int x, int y, float* slope, point* points
         points[8] = points[7];
     }
 
-    // TODO: Update to account for tilt
+    // Calculate pole length using only y-axis
     float pole_length = points[6].y - points[8].y;
 
-    // TODO: Not working?
+    // Determine if pole length is long enough to be valid
     if (pole_length < 8 * pole_width) return 0;
 
+    // Return pole length
     return pole_length;
 }
 
@@ -427,15 +424,21 @@ void mark_point_exact(image im, point p, float shade) {
     set_pixel(im, x, y, 2, shade);
 }
 
-// TODO: vizualize_points function
+// Annotates an image with point and slope visuals
+// Arguments:
+//  `im` = image to annotate
+//  `slope` = slope of pole in image
+//  `points` = the points to annotate
 void vizualize_points(image im, float slope, point* points) {
     float x, y;
     int i;
 
+    // Mark all of the points
     for (i = 0; i < 9; i++) {
         mark_point(im, make_point(points[i].x, points[i].y), 1);
     }
 
+    // Draw down along slope through center of pole
     x = points[0].x;
     y = points[0].y;
     mark_point_exact(im, make_point(x, y), 1);
@@ -444,6 +447,7 @@ void vizualize_points(image im, float slope, point* points) {
         mark_point_exact(im, make_point(x, y), 1);
     }
 
+    // Draw up along slope through center of pole
     x = points[0].x;
     y = points[0].y;
     for (; in_image(im, x, y); y--) {
@@ -452,69 +456,72 @@ void vizualize_points(image im, float slope, point* points) {
     }
 }
 
-// TODO: Add comments
-void print_pole_info(image hsv, point* points) {
-    for (int i = 0; i < 9; i++) {
-        printf("points[%d]:  coords = (%d, %d)  data = [%f, %f, %f]\n",
-            i, (int) roundf(points[i].x), (int) round(points[i].y),
-            get_pixel(hsv, points[i].x, points[i].y, 0),
-            get_pixel(hsv, points[i].x, points[i].y, 1),
-            get_pixel(hsv, points[i].x, points[i].y, 2));
-    }
-}
-
-// TODO: Add comments
+// Detects pole in image and annotates
+// Arguments:
+//  `im` = image to annotate
+// Returns:
+//  annotated image
 image detect_pole(image im) {
+    // Prepare HSV image
     image hsv = copy_image(im);
     rgb_to_hsv(hsv);
 
+    // Declare variables for later use
     float x, y;
     point points[9];
     float slope;
 
-    // Find sweep step values TODO: Use this?
-    // int sweep_step = im.w > 500 ? im.w / 500 : 1;
-    // int sweep_step_virtical = im.h > 8 ? im.h / 8 : 1;
-
-    // TODO: Start sweep in middle?
+    // Sweep pole for red pixel
     for (y = 0; y < im.h; y += SWEEP_STEP_VIRTICAL) {
         for (x = 0; x < im.w; x += SWEEP_STEP) {
+            // If pixel is red
             if (is_red(hsv, x, y, 300, 30)) {
+                // Try to get pole info
                 if (get_pole_info(im, hsv, x, y, &slope, points)) {
+                    // If successful, proceed out of sweep
                     goto proceed;
                 }
             }
         }
     }
+    // If sweep found no pole
     goto end_protocol;
 
+    // If sweep found pole, annotate the image
     proceed: ;
-    if (VIZUALIZE) vizualize_points(im, slope, points);
-    if (PRINT_INFO) print_pole_info(hsv, points);
+    vizualize_points(im, slope, points);
     
     end_protocol: ;
+    // Free HSV image
     free_image(hsv);
+
+    // Return annotated image
     return im;
 }
 
-// TODO: Add comments
+// Detects pole in image and returns top and bottom points
+// Arguments:
+//  `im` = image to perform detection on
+// Returns:
+//  set of top and bottom points
 point_set detect_pole_points(image im) {
+    // Prepare HSV image
     image hsv = copy_image(im);
     rgb_to_hsv(hsv);
 
+    // Declare variables for later use
     float x, y;
     point points[9];
     float slope;
 
-    // Find sweep step values TODO: Use this?
-    // int sweep_step = im.w > 500 ? im.w / 500 : 1;
-    // int sweep_step_virtical = im.h > 8 ? im.h / 8 : 1;
-
-    // TODO: Start sweep in middle?
+    // Sweep pole for red pixel
     for (y = 0; y < im.h; y += SWEEP_STEP_VIRTICAL) {
         for (x = 0; x < im.w; x += SWEEP_STEP) {
+            // If pixel is red
             if (is_red(hsv, x, y, 300, 30)) {
+                // Try to get pole info
                 if (get_pole_info(im, hsv, x, y, &slope, points)) {
+                    // If successful, proceed out of sweep
                     goto proceed;
                 }
             }
@@ -522,28 +529,14 @@ point_set detect_pole_points(image im) {
     }
 
     proceed: ;
+    // Free HSV image
     free_image(hsv);
 
+    // Load point set with top and bottom pixels
     point_set results;
     results.top = points[8];
     results.bottom = points[6];
+
+    // Return points
     return results;
-}
-
-// TODO: Add comments
-image find_red(image im) {
-    rgb_to_hsv(im);
-
-    for (int y = 0; y < im.h; y++) {
-        for (int x = 0; x < im.w; x++) {
-            if (!is_red(im, x, y, 300, 30)) {
-                set_pixel(im, x, y, 1, 0);
-                set_pixel(im, x, y, 2, 0);
-            }
-        }
-    }
-
-    hsv_to_rgb(im);
-
-    return im;
 }

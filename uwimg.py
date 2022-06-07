@@ -267,10 +267,6 @@ detect_pole_points = lib.detect_pole_points
 detect_pole_points.argtypes = [IMAGE]
 detect_pole_points.restype = POINT_SET
 
-find_red = lib.find_red
-find_red.argtypes = [IMAGE]
-find_red.restype = IMAGE
-
 def make_model(layers):
     m = MODEL()
     m.n = len(layers)
