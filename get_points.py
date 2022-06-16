@@ -40,6 +40,7 @@ for name in filenames:
                             pow(res.top.y - res.bottom.y, 2)).real, 5)
     if length > 1: pole_length[count] = length
 
+    free_image(image)
     count += 1
     print(" ", round(count / len(filenames) * 100, 2), "% complete", sep="")
 

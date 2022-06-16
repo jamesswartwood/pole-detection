@@ -18,6 +18,7 @@ for name in filenames:
     image = load_image(name)
     res = detect_pole(image)
     save_image(res, save_path + save_prefix + name[len(data_path):-4])
+    free_image(image)
     count += 1
     print(" ", round(count / len(filenames) * 100, 2), "% complete", sep="")
 
